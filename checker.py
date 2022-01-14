@@ -78,7 +78,13 @@ def get_dns_names(req: OpenSSL.crypto.X509):
 	dns_names = []
 
 	for i in range(req.get_extension_count()):
-		val = req.get_extension(i)
+		try:
+			val = req.get_extension(i)
+		except OpenSSL.crypto._exception_from_error_queue:
+			continue
+		except Exception:
+			continue
+
 		if 'DNS' in str(val):
 			for alt in str(val).split(', '):
 				if alt.startswith('DNS:'):
