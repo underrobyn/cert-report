@@ -28,12 +28,12 @@ def check_urls():
 def save_results():
 	with open('output.csv', 'w', newline='', encoding='utf-8') as f:
 		write = csv.writer(f)
-		write.writerow(['host', 'port', 'before', 'after'])
+		write.writerow(['host', 'port', 'before', 'after', 'result'])
 		write.writerows(results)
 
 
 def process_host(string):
-	print(f"Checking certificate for host {string}")
+	print(f"\nChecking certificate for host {string}")
 
 	if ':' not in string:
 		string += ':443'
@@ -44,16 +44,19 @@ def process_host(string):
 	try:
 		before, after = check_host(host, port)
 	except Exception:
-		print(f"Failed connecting to {host} on port {port}")
+		print(f"-> Failed connecting to {host} on port {port}")
+		results.append(
+			[host, port, "0", "0", "Failed to connect"]
+		)
 		return
 
 	d_before, d_after = decode_result(before, after)
 	str_before, str_after = string_date(d_before), string_date(d_after)
 
-	print(f"Result: {str_before}, {str_after}")
+	print(f"-> Result: {str_before}, {str_after}")
 
 	results.append(
-		[host, port, str_before, str_after]
+		[host, port, str_before, str_after, "Success"]
 	)
 
 
@@ -61,11 +64,27 @@ def check_host(hostname, port):
 	cert = ssl.get_server_certificate((hostname, port))
 
 	x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
+	print(get_dns_names(x509))
+	print(str(x509.get_signature_algorithm()))
+	print(str(x509.get_issuer()))
 
 	before = x509.get_notBefore()
 	after = x509.get_notAfter()
 
 	return before, after
+
+
+def get_dns_names(req: OpenSSL.crypto.X509):
+	dns_names = []
+
+	for i in range(req.get_extension_count()):
+		val = req.get_extension(i)
+		if 'DNS' in str(val):
+			for alt in str(val).split(', '):
+				if alt.startswith('DNS:'):
+					dns_names.append(alt[4:])
+
+	return dns_names
 
 
 def decode_result(before, after):
