@@ -26,7 +26,7 @@ def check_urls():
 
 
 def save_results():
-	with open('output.csv', 'w', newline='', encoding='utf-8') as f:
+	with open('report/output.csv', 'w', newline='', encoding='utf-8') as f:
 		write = csv.writer(f)
 		write.writerow(['host', 'port', 'algorithm', 'before', 'after', 'result'])
 		write.writerows(results)
