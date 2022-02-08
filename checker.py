@@ -5,59 +5,60 @@ import OpenSSL
 import ssl
 import csv
 
-
-results = []
-
-
-def main():
-	check_urls()
+from cert_result import CertResult
 
 
-def check_urls():
-	if not exists('urls.txt'):
-		print('urls.txt does not exist. How am I supposed to know what you want to scan?')
-		exit(1)
-
-	with open('urls.txt') as f:
-		for line in f:
-			process_host(line.strip())
-
-	save_results()
+def string_date(date):
+	return date.strftime("%Y-%m-%d, %H:%M:%S")
 
 
-def save_results():
-	with open('report/output.csv', 'w', newline='', encoding='utf-8') as f:
-		write = csv.writer(f)
-		write.writerow(['host', 'port', 'algorithm', 'before', 'after', 'result'])
-		write.writerows(results)
+class CertReport:
 
+	results = []
 
-def process_host(string):
-	print(f"\nChecking certificate for host {string}")
+	def __init__(self):
+		pass
 
-	if ':' not in string:
-		string += ':443'
+	def get_urls_from_file(self):
+		if not exists('urls.txt'):
+			print('urls.txt does not exist. How am I supposed to know what you want to scan?')
+			exit(1)
 
-	host = string.split(':')[0]
-	port = string.split(':')[1]
+		with open('urls.txt') as f:
+			for line in f:
+				self.add_host(line.strip())
 
-	try:
-		before, after, key_security = check_host(host, port)
-	except Exception:
-		print(f"-> Failed connecting to {host} on port {port}")
-		results.append(
-			[host, port, "?", "0", "0", "Failed to connect"]
+	def add_host(self, host):
+		if ':' not in host:
+			host += ':443'
+
+		host = host.split(':')[0]
+		port = host.split(':')[1]
+
+		self.results.append(
+			CertResult(host, port)
 		)
-		return
 
-	d_before, d_after = decode_result(before, after)
-	str_before, str_after = string_date(d_before), string_date(d_after)
+	def check_urls(self):
+		for result in self.results:
+			result.get_cert()
+			result.get_san()
+			result.get_info()
 
-	print(f"-> Result: {str_before}, {str_after}, {key_security}")
+		pass
 
-	results.append(
-		[host, port, key_security, str_before, str_after, "Success"]
-	)
+	def get_results_objects(self):
+		# TODO: Make pythonic
+		out = []
+		for result in self.results:
+			out.append(result.get_object())
+		return out
+
+	def save_results_csv(self):
+		with open('report/output.csv', 'w', newline='', encoding='utf-8') as f:
+			write = csv.writer(f)
+			write.writerow(['host', 'port', 'encryption', 'start', 'end', 'result'])
+			write.writerows(self.get_results_objects())
 
 
 def check_host(hostname, port):
@@ -78,35 +79,8 @@ def check_host(hostname, port):
 	return before, after, key_security
 
 
-def get_dns_names(req: OpenSSL.crypto.X509):
-	dns_names = []
-
-	for i in range(req.get_extension_count()):
-		try:
-			val = req.get_extension(i)
-		except OpenSSL.crypto._exception_from_error_queue:
-			continue
-		except Exception:
-			continue
-
-		if 'DNS' in str(val):
-			for alt in str(val).split(', '):
-				if alt.startswith('DNS:'):
-					dns_names.append(alt[4:])
-
-	return dns_names
-
-
-def decode_result(before, after):
-	d_before = datetime.strptime(before.decode('ascii'), '%Y%m%d%H%M%SZ')
-	d_after = datetime.strptime(after.decode('ascii'), '%Y%m%d%H%M%SZ')
-
-	return d_before, d_after
-
-
-def string_date(date):
-	return date.strftime("%Y-%m-%d, %H:%M:%S")
-
-
 if __name__ == '__main__':
-	main()
+	cr = CertReport()
+	cr.get_urls_from_file()
+	cr.check_urls()
+	cr.save_results_csv()
