@@ -1,23 +1,12 @@
-from datetime import datetime
 from os.path import exists
 
-import OpenSSL
-import ssl
 import csv
 
 from cert_result import CertResult
 
 
-def string_date(date):
-	return date.strftime("%Y-%m-%d, %H:%M:%S")
-
-
 class CertReport:
-
 	results = []
-
-	def __init__(self):
-		pass
 
 	def get_urls_from_file(self):
 		if not exists('urls.txt'):
@@ -29,11 +18,12 @@ class CertReport:
 				self.add_host(line.strip())
 
 	def add_host(self, host):
-		if ':' not in host:
-			host += ':443'
+		port = 443
 
-		host = host.split(':')[0]
-		port = host.split(':')[1]
+		if ':' in host:
+			host_parts = host.split(':')
+			host = host_parts[0]
+			port = host_parts[1]
 
 		self.results.append(
 			CertResult(host, port)
@@ -42,10 +32,9 @@ class CertReport:
 	def check_urls(self):
 		for result in self.results:
 			result.get_cert()
-			result.get_san()
-			result.get_info()
-
-		pass
+			if not result.connect_error:
+				result.get_san()
+				result.get_info()
 
 	def get_results_objects(self):
 		# TODO: Make pythonic
@@ -55,28 +44,15 @@ class CertReport:
 		return out
 
 	def save_results_csv(self):
+		headers = ['host', 'port', 'start', 'end', 'encryption', 'issued_to', 'issued_o', 'issuer_c', 'issuer_o',
+				   'issuer_ou', 'issuer_cn', 'cert_serial', 'cert_sha1', 'cert_algorithm', 'cert_version']
+
 		with open('report/output.csv', 'w', newline='', encoding='utf-8') as f:
-			write = csv.writer(f)
-			write.writerow(['host', 'port', 'encryption', 'start', 'end', 'result'])
-			write.writerows(self.get_results_objects())
+			writer = csv.DictWriter(f, fieldnames=headers)
 
-
-def check_host(hostname, port):
-	cert = ssl.get_server_certificate((hostname, port))
-
-	x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-	# print(get_dns_names(x509))
-	print(str(x509.get_signature_algorithm()))
-	print(str(x509.get_issuer()))
-
-	key_type = 'RSA' if x509.get_pubkey().type() == OpenSSL.crypto.TYPE_RSA else 'DSA'
-	key_length = x509.get_pubkey().bits()
-	key_security = f"{key_type}-{key_length}"
-
-	before = x509.get_notBefore()
-	after = x509.get_notAfter()
-
-	return before, after, key_security
+			writer.writeheader()
+			for res in self.results:
+				writer.writerow(res.get_object())
 
 
 if __name__ == '__main__':
