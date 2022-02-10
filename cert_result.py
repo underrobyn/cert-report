@@ -56,7 +56,12 @@ class CertResult:
 		ssl_conn = SSL.Connection(ssl_ctx, sock)
 		ssl_conn.set_tlsext_host_name(self.host.encode())
 		ssl_conn.set_connect_state()
-		ssl_conn.do_handshake()
+
+		try:
+			ssl_conn.do_handshake()
+		except SSL.Error:
+			self.connect_error = True
+			return
 
 		self._cert = ssl_conn.get_peer_certificate()
 		self._subject = self._cert.get_subject()

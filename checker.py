@@ -8,12 +8,12 @@ from cert_result import CertResult
 class CertReport:
 	results = []
 
-	def get_urls_from_file(self):
-		if not exists('urls.txt'):
+	def get_hosts_from_file(self, file_name):
+		if not exists(file_name):
 			print('urls.txt does not exist. How am I supposed to know what you want to scan?')
 			exit(1)
 
-		with open('urls.txt') as f:
+		with open(file_name) as f:
 			for line in f:
 				self.add_host(line.strip())
 
@@ -29,7 +29,7 @@ class CertReport:
 			CertResult(host, port)
 		)
 
-	def check_urls(self):
+	def check_hosts(self):
 		for result in self.results:
 			result.get_cert()
 			if not result.connect_error:
@@ -57,6 +57,6 @@ class CertReport:
 
 if __name__ == '__main__':
 	cr = CertReport()
-	cr.get_urls_from_file()
-	cr.check_urls()
+	cr.get_hosts_from_file('urls.txt')
+	cr.check_hosts()
 	cr.save_results_csv()
