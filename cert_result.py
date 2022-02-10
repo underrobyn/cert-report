@@ -1,6 +1,7 @@
+import logging
 import socket, json
 from datetime import datetime
-from ssl import PROTOCOL_TLSv1
+from ssl import PROTOCOL_TLSv1, PROTOCOL_TLSv1_2
 
 from OpenSSL import SSL, crypto
 
@@ -32,7 +33,16 @@ class CertResult:
 
 	def get_cert(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		ssl_ctx = SSL.Context(PROTOCOL_TLSv1)
+		try:
+			ssl_ctx = SSL.Context(PROTOCOL_TLSv1_2)
+		except:
+			logging.warning('Failed to get URL via TLS 1.2, trying TLS 1.0')
+			try:
+				ssl_ctx = SSL.Context(PROTOCOL_TLSv1)
+			except:
+				self.connect_error = True
+				logging.error('Failed to get cert via TLS 1.0 and TLS 1.2')
+				return
 
 		try:
 			sock.connect((self.host, self.port))
