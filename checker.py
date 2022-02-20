@@ -52,6 +52,8 @@ class CertReport:
 
 			writer.writeheader()
 			for res in self.results:
+				if res.connect_error:
+					continue
 				writer.writerow(res.get_object())
 
 

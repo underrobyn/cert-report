@@ -1,7 +1,6 @@
 import logging
 import socket, json
 from datetime import datetime
-from ssl import PROTOCOL_TLSv1, PROTOCOL_TLSv1_2
 
 from OpenSSL import SSL, crypto
 
@@ -34,15 +33,12 @@ class CertResult:
 	def get_cert(self):
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
-			ssl_ctx = SSL.Context(PROTOCOL_TLSv1_2)
-		except:
-			logging.warning('Failed to get URL via TLS 1.2, trying TLS 1.0')
-			try:
-				ssl_ctx = SSL.Context(PROTOCOL_TLSv1)
-			except:
-				self.connect_error = True
-				logging.error('Failed to get cert via TLS 1.0 and TLS 1.2')
-				return
+			# Thanks: https://stackoverflow.com/questions/60494517/how-can-this-ssl-error-using-protocol-tlsv1-2-be-solved
+			ssl_ctx = SSL.Context(SSL.TLSv1_2_METHOD)
+		except SSL.Error:
+			logging.error('Failed to get TLS 1.2 context')
+			self.connect_error = True
+			return
 
 		try:
 			sock.connect((self.host, self.port))
@@ -60,6 +56,7 @@ class CertResult:
 		try:
 			ssl_conn.do_handshake()
 		except SSL.Error:
+			logging.error(f'Failed to complete SSL handshake to {self.host}')
 			self.connect_error = True
 			return
 
