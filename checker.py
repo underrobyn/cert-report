@@ -15,6 +15,7 @@ class CertReport:
 	def __init__(self):
 		if not HAS_TLSv1_2:
 			raise Error('No TLS 1.2 support')
+
 		if not HAS_TLSv1_3:
 			logging.warning('No TLS 1.3 support, this may cause issues in a future version.')
 

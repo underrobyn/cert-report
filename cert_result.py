@@ -35,9 +35,9 @@ class CertResult:
 		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		try:
 			# Thanks: https://stackoverflow.com/questions/60494517/how-can-this-ssl-error-using-protocol-tlsv1-2-be-solved
-			ssl_ctx = SSL.Context(SSL.TLSv1_2_METHOD)
+			ssl_ctx = SSL.Context(SSL.TLS_METHOD)
 		except SSL.Error:
-			logging.error('Failed to get TLS 1.2 context')
+			logging.error('Failed to get TLS context')
 			self.connect_error = True
 			return
 
@@ -132,6 +132,7 @@ class CertResult:
 
 
 if __name__ == '__main__':
+	logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(asctime)s - %(message)s')
 	test = CertResult('google.co.uk', 443)
 	test.get_cert()
 	test.get_san()
