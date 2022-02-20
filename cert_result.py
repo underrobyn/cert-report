@@ -11,6 +11,7 @@ class CertResult:
 		self.host = host
 		self.port = int(port)
 		self.connect_error = False
+		self.protocol = None
 
 		self._cert = None
 		self._subject = None
@@ -52,6 +53,9 @@ class CertResult:
 		ssl_conn = SSL.Connection(ssl_ctx, sock)
 		ssl_conn.set_tlsext_host_name(self.host.encode())
 		ssl_conn.set_connect_state()
+
+		self.protocol = ssl_conn.get_protocol_version_name()
+		logging.info(f'Using protocol: {self.protocol}')
 
 		try:
 			ssl_conn.do_handshake()
