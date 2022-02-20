@@ -1,12 +1,22 @@
 from os.path import exists
 
 import csv
+import logging
+
+from OpenSSL.SSL import Error
 
 from cert_result import CertResult
+from ssl import HAS_TLSv1_2, HAS_TLSv1_3
 
 
 class CertReport:
 	results = []
+
+	def __init__(self):
+		if not HAS_TLSv1_2:
+			raise Error('No TLS 1.2 support')
+		if not HAS_TLSv1_3:
+			logging.warning('No TLS 1.3 support, this may cause issues in a future version.')
 
 	def get_hosts_from_file(self, file_name):
 		if not exists(file_name):
